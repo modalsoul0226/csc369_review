@@ -1,8 +1,8 @@
 # CSC369 Review :weary: :weary: :weary:
 
-##Table of Contents
+## Table of Contents
 
--[Week 6: MEMORY MANAGEMENT](#Week 6: MEMORY MANAGEMENT)
+- [Week 6: MEMORY MANAGEMENT](#Week 6: MEMORY MANAGEMENT)
 
 
 ## Week 6: MEMORY MANAGEMENT
