@@ -2,8 +2,7 @@
 
 ## Table of Contents
 
-- [Week 6: MEMORY MANAGEMENT](#Week 6: MEMORY MANAGEMENT)
-
+- [Week 6: MEMORY MANAGEMENT](#Week-6:-MEMORY-MANAGEMENT)
 
 ## Week 6: MEMORY MANAGEMENT
 \- <strong>GOALs of VM</strong>:
