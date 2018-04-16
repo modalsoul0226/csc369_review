@@ -1,5 +1,9 @@
 # CSC369 Review :weary: :weary: :weary:
 
+##Table of Contents
+
+-[Week 6: MEMORY MANAGEMENT](#Week 6: MEMORY MANAGEMENT)
+
 
 ## Week 6: MEMORY MANAGEMENT
 \- <strong>GOALs of VM</strong>:
@@ -36,3 +40,5 @@ Paging works by decoupling address space completely from actual physical data lo
 </br>
 * Each process gets the illusion of its personal address space (<em>AS</em>) from
 **0 to 2^64-1**.
+* Each virtual page can be mapped to any physical page.
+* Data is either in **memory** or on **disk**.
