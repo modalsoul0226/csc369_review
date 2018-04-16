@@ -1,9 +1,9 @@
 # CSC369 Review :weary: :weary: :weary:
 
 ## Table of Contents
-
-- [Week 6: MEMORY MANAGEMENT](#week-6-memory-management)
-
+---
+- [Week 6: Memory Management](#week-6-memory-management)
+---
 ## Week 6 Memory Management
 \- <strong>GOALs of VM</strong>:
 * `6.1 Efficiency`: since only have a limited amount of physical memory, must use efficiently.</br>
