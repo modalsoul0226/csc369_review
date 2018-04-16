@@ -2,9 +2,9 @@
 
 ## Table of Contents
 
-- [Week 6: MEMORY MANAGEMENT](#week-6:-memory-management)
+- [Week 6: MEMORY MANAGEMENT](#week-6-memory-management)
 
-## Week 6: MEMORY MANAGEMENT
+## Week 6 Memory Management
 \- <strong>GOALs of VM</strong>:
 * `6.1 Efficiency`: since only have a limited amount of physical memory, must use efficiently.</br>
 * `6.2 Transparency`: since must provide the illusion of “infinite” memory to each process.</br>
