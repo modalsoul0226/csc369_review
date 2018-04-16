@@ -1,4 +1,4 @@
-# CSC369 Review :weary:
+# CSC369 Review :weary: :weary: :weary:
 
 
 ## Week 6: MEMORY MANAGEMENT
