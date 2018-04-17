@@ -129,4 +129,5 @@ Stroed in protected memory, and a user process cannot access its own page table.
 
 ## Week 7: Paged Virtual Memory
 **Multi-level page tables** split page table into *pages of PTEs*, use a *page table directory* to point to different pages of PTEs.</br>
-Following is the comparison between linear page table and multi-level page table.
+Following is the comparison between linear page table and multi-level page table.</br>
+<img src="./images/l_ml_compare.png" width="650">
