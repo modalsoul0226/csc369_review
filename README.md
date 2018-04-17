@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Week 6: Memory Management](#week-6-memory-management)
+- [Week 7: Paged Virtual Memory](#week-7-paged-virtual-memory)
 
 ## Week 6 Memory Management
 \- <strong>GOALs of VM</strong>:
@@ -18,7 +19,7 @@
 *Transparency explained*:</br> - Give each process its own view of memory.</br> - Decouple the data layout from where the data is actually stored in physical memory.
 
 **6.2.1 Fixed Partitioning**</br>
-<img align="right" src="./fixed_paritioning.png" width="100">
+<img align="right" src="./images/fixed_paritioning.png" width="100">
 * Each process gets a fixed partition to use. (OS occupies a seperate partition)
 * *Three* main problems introduced by `fixed partitioning`:</br>
 \- If process is smaller than the partition, this will cause **internal fragmentation** (wastes memory)</br> 
@@ -35,7 +36,7 @@ Partitions will vary in length and numbers over time. When a process is brought 
 ### 6.2.3 Solution - VM Paging</br>
 Paging works by decoupling address space completely from actual physical data location and splitting both virtual and physical memory in same-size **pages**.
 </br>
-<img src="process_co_exist_in_memory.png" width="600">
+<img src="./images/process_co_exist_in_memory.png" width="600">
 </br>
 * Each process gets the illusion of its personal address space (<em>AS</em>) from
 **0 to 2^64-1**.
@@ -106,7 +107,7 @@ Need *dynamic relocation*.
 * Virtual addresses now interpreted as *page number + page offset*:</br>
 &nbsp;&nbsp; - page number = vaddr / page_size</br>
 &nbsp;&nbsp; - page offset = vaddr % page_size</br>
-<img src="pa_translation.png" width="600">
+<img src="./images/pa_translation.png" width="600">
 </br>Details:
 * MMU hardware generates address of page table entry, does lookup without OS.</br>
 * OS has to load PTBR (*page table base register*) for new process on context switch since page tables are per process.
@@ -119,9 +120,13 @@ Stroed in protected memory, and a user process cannot access its own page table.
 * Allocate enough physical memory (ppages) for entire page table.
 
 ### 6.6.2 Page Table Entries
-<img src="./pte.png" width="650"></br>
+<img src="./images/pte.png" width="650"></br>
 * **Modify bit**(M) says whether or not page has been written. Set when a write to a page occurs.
 * **Reference bit**(R) says whether page has been accessed. Set when a read or write to the page occurs.
 * **Valid bit**(V) says whether PTE can be used. Checked on each use of virtual address.
 * **Protection bit**(Prot) specifies what operations are allowed on page (read/write/execute)
 * **Page frame number**(PFN) determines physcial page. Not all bits are provided by all architectures.
+
+## Week 7: Paged Virtual Memory
+**Multi-level page tables** split page table into *pages of PTEs*, use a *page table directory* to point to different pages of PTEs.</br>
+Following is the comparison between linear page table and multi-level page table.
