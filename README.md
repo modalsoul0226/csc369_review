@@ -255,5 +255,5 @@ TLB traps to the OS:
 A *working set* of a process is used to model the dynamic locality of its memory usage.
 * W(t, r) = {pages P s.t. P was referenced ini the time interval (t, t-r)}
 * w(t, r) = number of pages in W(t, r)</br>
-<img align="left" src="./images/Wtr.png" width="350">
+<img align="left" src="./images/Wtr.png" width="375">
 <img align="right" src="./images/wtr.png" width="350">
