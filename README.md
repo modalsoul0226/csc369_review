@@ -113,7 +113,7 @@ Need *dynamic relocation*.
 * OS has to load PTBR (*page table base register*) for new process on context switch since page tables are per process.
 
 ### 6.6.1 The Page Table
-Stroed in protected memory, and a user process cannot access its own page table.
+Stored in protected memory, and a user process cannot access its own page table.
 * A linear array of *page table* entries, 1 entry per virtual page.
 * Stored in **OS memory, attached to process structure**.
 * Virtual page number (VPN) serves as array index.
@@ -125,9 +125,128 @@ Stroed in protected memory, and a user process cannot access its own page table.
 * **Reference bit**(R) says whether page has been accessed. Set when a read or write to the page occurs.
 * **Valid bit**(V) says whether PTE can be used. Checked on each use of virtual address.
 * **Protection bit**(Prot) specifies what operations are allowed on page (read/write/execute)
-* **Page frame number**(PFN) determines physcial page. Not all bits are provided by all architectures.
+* **Page frame number**(PFN) determines physcial page.</br>Not all bits are provided by all architectures.
 
 ## Week 7: Paged Virtual Memory
 **Multi-level page tables** split page table into *pages of PTEs*, use a *page table directory* to point to different pages of PTEs.</br>
 Following is the comparison between linear page table and multi-level page table.</br>
-<img src="./images/l_ml_compare.png" width="650">
+<img src="./images/l_ml_compare.png" width="650"></br>
+
+### 7.1 Two-level Page Tables</br>
+<img src="./images/two-level_page_table.png" width="650"></br>
+**Tradeoff: space vs. time**
+* Saves space
+* Adds more levels of indirection when translating addresses which means more complexity in the translation algorithm.
+
+### 7.2 Hashed Page Tables</br>
+<img src="./images/hashed_page_table.png" width="650">
+
+### 7.3 Paging Limitations - Time
+* 2 memory reads(references) per address loopup. (First read page table, then actual memory)
+* Hierarchical page tables make it worse due to one read per level of page table. (Solution: use a hardware cache of lookups)
+
+### 7.4 Translation Lookaside Buffer (TLB)
+Small, fully-associative hardware cache of recently used translations. It translates virtual page numbers (VPNs) into PTEs (not physical addresses) and can be done in a single machine cycle.</br>
+TLBs are implemented in hardware:
+* Fully associative cache (all entries looked up in parallel).
+* Cache tags are virtual page numbers.
+* Cache values are PTEs (entries from page tables).
+* With PTE + offset, can directly calculate physical address.</br>
+<img src="./images/tlb.png" width="600"></br>
+
+\- TLB exploit **locality**
+* Processes only use a handful of pages at a time, and we only need those pages to be "mapped".
+* Hit rates: >99% of translations are hits.
+
+\- Managing TLBs
+* OS ensures that *TLB and page tables are consistent*. e.g. when it changes the protection bits of a PTE, it needs to update the copy of the PTE in the TLB(if one exists). Typically, just invalidate the entry.
+* Reload TLB on a *process context switch*. Invalidate all entries.
+* When the TLB misses and a new PTE has to be loaded, *a cached PTE must be evicted*. Choosing PTE to evict is called the *TLB replacement policy* and is implemented in hardware.
+
+### 7.5 Demand paging
+Pages can be moved between memory and disk, this is called *demand paging*.
+1. Initially, pagees are allocated to memory.
+2. When memory fills up, allocating a page in memory requires some other page to be evicted from memory.</br>
+&nbsp;&nbsp; - When a process accesses the page, the invalid PTE will cause a trap(*page fault*).</br>
+&nbsp;&nbsp; - The trap will run the OS page fault handler.</br>
+&nbsp;&nbsp; - Handler uses the invalid PTE to locate page in swap file.</br>
+&nbsp;&nbsp; - Reads page into a physical frame, update PTE to point to it.</br>
+3. Evicted pages go to disk (swap file).</br>
+&nbsp;&nbsp; - When it evicts a page, the OS sets the PTE as invalid and stores the location of the page in swap file in PTE.</br>
+* The movement of pages between memory and disk is done by the OS, and is transparent to the application.
+* Actually, only **dirty** pages need to be written to disk. Clean pages do not, but you need to know where on disk to read them from again.
+* Demand paging is also used when a process first starts up. When a process is created, it has a brand new page table with all valid bits off and no pages in memory. When the process starts executing, instructions fault on code and data pages, faulting stops when all necessary code and data pages are in memory. Only code and data needed by a process needs to be loaded.
+* Alternative of *prepaging* which predicts future page that will be used.</br>
+<img src="./images/pp_vs_dp.png" width="550">
+
+### 7.6 Placement Policy
+In paging systems, memory management hardware can translate any virtual-to-physical mapping equally well.
+* Non-uniform Memory Access Multiprocessors. Any processor can access entire memory, but local memory is faster.
+* Cache performance. Choose physical pages to minimize cache conflicts.
+
+### 7.7 Replacement Policy
+The page replacement algorithm determines how a victim is chosen.
+
+### 7.7.1 Belady's algorithm (OPT)
+It has the lowest fault rate for any page reference string. It works by replacing the page that will not be used for the longest period of time.
+
+### 7.7.2 First-In-First-Out (FIFO)
+* Maintain a list of pages in order in which they were paged in. On replacement, simply evict the one brought in longest time ago.
+* The fault rate **increases** when the algorithm is given more memory.
+
+### 7.7.3 Least Recently Used (LRU)
+* Uses reference information to make a more informed replacement decision. Can make a guess of the future based opon past experience.
+* On replacement, evict the page that has not been used for the longest time in the past.
+* Options for implementing LRU:
+&nbsp;&nbsp; \- *Time stamp* every reference and evict the page with oldest time stamp. The problem is we need to make PTE large enough to hold meaningful time stamp and need to examing every page on eviction to find one with oldest time stamp.</br>
+&nbsp;&nbsp; \- Keep pages in a *stack*. On reference, move the page to the top of the stack. On eviction, replace page at bottom. The problem is we need costly software operation to manipulate stack on *EVERY* memory reference.
+* We can implement *Approximating LRU* to avoid too much cost. It uses the PTE *reference bit*. Keep a counter for each page. At regular intervals, for every page: shift R bits into high bit of counter register, shift other bits to the right and pages with "larger" counters were used more recently.
+
+### 7.7.4 Clock
+Replace page that is "*old enough*".
+* Arrange all of physical page frames in a big circle (clock).
+* A clock hand is used to select a good LRU candidate.</br>
+&nbsp;&nbsp; \- Sweep through the pages in circular order like a clock.</br>
+&nbsp;&nbsp; \- If the ref bit is off, it hasn't been used recently.</br>
+&nbsp;&nbsp; \- If the ref bit is on, turn it off and go to next page.
+* Arm moves quickly when pages are needed and low overhead when plenty of memory.
+* If memory is large, "accuracy" of information degrades.
+
+### 7.8 Thrashing
+Thrashing takes place when more time is spent by the OS in paging data back and forth from disk than executing user programs caused by memory demands of the set of running processes simply exceeding the available physcial memory.
+* `Admission control`: Given a set of processes, a system could decide not to run a subset of processes, with the hope that the reduced set of processes' *working sets* (the pages that they are using actively) fit in memory and thus can make progress. (states that it is sometimes better to do less work well than to do everything at once poorly)
+* `Out-of-memory killer`: this daemon chooses a memory-intensive process and kills it, thus reducing memory in a none-too-subtle manner. While successful at reducing memory pressure, this approach can have problems, if, for example, it kills the X server and thus renders any applications requiring the display unusable.
+
+### 7.9 CPU utilization
+<p align="center">
+<img src="./images/multiprogramming.png" width="250"></p>
+
+As the illustration shows, *CPU utilization* of a system can be improved by using multiprogramming. Let P be the fraction of time that a process spends away from the CPU. If there is one process in memory, the CPU utilization is 1-P. If there are N processes in memory, the probability of N processes waiting for an I/O is P\*P...*p (N times). The CPU utilization is (1-P^N) where N is the degree of multiprogramming. As N increases, the CPU utilization increases.</br>
+However, once the system passes the point of optimal CPU utilization, as less memory is available to each program will cause higher page fault likelihood i.e. it thrashes.
+
+### 7.10 Page Buffering
+Previously, we assumed the replacement algorithm is run and a victim selected when a new page needs to be brought in. Most of these algorithms are too costly to run on every page fault.</br>
+In actuality, OS keeps a small portion of memory free by having some kind of *high watermark* and *low watermark* to help decide when to start evicting pages from memory. When the OS notices that there are fewer than *LW* pages available, a background thread (`swap daemon`) is responsible for freeing memory runs. It evicts pages until there are *HW* pages available, then goes to sleep.
+
+### 7.11 Swap Space
+The space on disk for moving pages back from memory and forth to memory. </br>
+Swap space is not the only on-disk location for swapping. Assume you are running a program binary. The code pages from this binary are initially found on disk, and when the program runs, they are loaded into memory (one page at a time when needed). However, if the system needs to make room in physical memory for other needs, it can safely re-use the memory space for these code pages, knowing that it can later swap them in again from the on-disk binary in the file system.
+
+### 7.12 TLB misses
+When a process is executing on the CPU, and it issues a read to an address. The read address goes to the TLB in the MMU.</br>
+*Notice that this is all done by the hardware.*
+1. TLB does a lookup using the page number of the address.
+2. Common case is that the page number matches, returning a PTE for the mapping for this address.
+3. TLB validates that the PTE protection allows reads.
+4. PTE specifies which physical frame holds the page.
+5. MMU combines physical frame & offset into a physical address.
+6. MMU reads from that physical address, returns value to CPU.</br>
+---
+If TLB does not have a PTE mapping for this virtual address, known as a *minor page fault* as no I/O will be needed in the following solutions. There are two possibilities:
+1. MMU loads PTE from page table in memory. Hardware managed TLB, OS not involved in this step, and OS has already set up the page tables so that the hardware can access it directly.
+2. Trap to OS. In this case, software manages TLB. OS does lookup in page table, loads PTE into TLB and returns from exception, then retries memory access.
+---
+If access is not permitted by PTE. PTE will indicate a protection fault, either operation is not permitted on page (r/w/x) or virtual page not allocated/not in physical memory.</br>
+TLB traps to the OS:
+* Permission denied: OS may send fault back up to process, or might be using protection for other purposes (e.g. cow, mapped files).
+* Invalid: If virtual page not allocated in address space, OS sends fault to process (e.g. segmentation fault). If page not in physical memory (major page fault), OS allocates frame and reads it in.
