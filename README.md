@@ -256,4 +256,9 @@ A *working set* of a process is used to model the dynamic locality of its memory
 * W(t, r) = {pages P s.t. P was referenced ini the time interval (t, t-r)}
 * w(t, r) = number of pages in W(t, r)</br>
 <img align="left" src="./images/Wtr.png" width="375">
-<img align="right" src="./images/wtr.png" width="350">
+<img align="center" src="./images/wtr.png" width="350">
+
+
+<p>
+The working set size <strong>changes with program locality</strong>. During periods of poor locality, more pages are referenced, and within this period of time, the working set size is larger. So, intuitively, want the working set to be the set of pages a process needs in <em>memory</em> to prevent heavy faulting.</br>
+e.g. when people ask, "How much memory does Firefox need?", they are in effect asking for the size of Firefox's working set.</p>
