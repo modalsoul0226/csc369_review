@@ -250,3 +250,10 @@ If access is not permitted by PTE. PTE will indicate a protection fault, either 
 TLB traps to the OS:
 * Permission denied: OS may send fault back up to process, or might be using protection for other purposes (e.g. cow, mapped files).
 * Invalid: If virtual page not allocated in address space, OS sends fault to process (e.g. segmentation fault). If page not in physical memory (major page fault), OS allocates frame and reads it in.
+
+### 7.13 Working Set Model
+A *working set* of a process is used to model the dynamic locality of its memory usage.
+* W(t, r) = {pages P s.t. P was referenced ini the time interval (t, t-r)}
+* w(t, r) = number of pages in W(t, r)</br>
+<img align="left" src="./images/Wtr.png" width="350">
+<img align="right" src="./images/wtr.png" width="350">
