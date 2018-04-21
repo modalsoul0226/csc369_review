@@ -347,7 +347,7 @@ Directories serves multiple purposes:
 * Inflexibal, causes fragmentation, needs compaction.
 <img src="./images/contiguous_alloc.png" width="600"></br>
 ---
-**Linked Allocatin**
+**Linked Allocation**
 * Each block points to the next, directory points to the first.
 * Good for sequential access, bad for all others.
 <img src="./images/linked_alloc.png" width="600"></br>
