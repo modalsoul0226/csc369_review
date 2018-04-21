@@ -262,3 +262,106 @@ A *working set* of a process is used to model the dynamic locality of its memory
 <p>
 The working set size <strong>changes with program locality</strong>. During periods of poor locality, more pages are referenced, and within this period of time, the working set size is larger. So, intuitively, want the working set to be the set of pages a process needs in <em>memory</em> to prevent heavy faulting.</br>
 e.g. when people ask, "How much memory does Firefox need?", they are in effect asking for the size of Firefox's working set.</p>
+
+### 7.14 Shared memory
+Since private virtual address spaces protect applications from each other, but this makes it difficult to share data. Parents and children in a forking web server or proxy will want to share an in-memory cache without copying. So, we can use shared memory to allow processes to share data using direct memory references.
+</br><img src="./images/sharing.png" width="450"></br>
+Implement sharing using page tables:
+* Have PTEs in both tables map to the same physical frame.
+* Each PTE can have different protection values.
+* Must update both PTEs when page becomes invalid.
+In the illustration above, we map shareed memory at same virtual addresses. We can also map at different virtual addresses in each process' address space. It will be more flexible since we can avoid address space conflicts, but pointers inside the shared memory segment are invalid.
+
+### 7.15 Copy On Write
+Copy on write (*CoW*) is used to defer large copies as long as possible, hoping to avoid them altogether. 
+* Instead of copying pages, create *shared mappings* of parent pages in child virtual address space.
+* Shared pages are protected as read-only in child. Reads happen as usual. Writes generate a protection fault, trap to OS, copy page, change page mapping in client page table, restart write instruction.
+
+### 7.16 Memory Mapped Files
+Bind a file to a virtual memory region:
+* PTEs map virtual addresses to physical frames holding file data.
+* Virtual address base + N corresponds to offset N in file.
+* Can read or write at various offsets in file, using memory operations.
+---
+Initially, all pages mapped to file are invalid:
+* OS reads a page from file when invalid page is accessed.
+* OS write a page to file when evicted, or region unmapped.
+---
+Advantages:
+- Uniform access for files and memory (just use pointers)
+- Less copying.
+</br>
+Drawbacks:
+- Since OS handles faults transparently, process has less control over data movement.
+- Does not generalize to streamed I/O. (pipes, sockets, etc. only works for files)
+
+## Week 8 File Systems
+File system should provide long-term information storage. It is required to store very large amounts of information which must survive the termination of process using it, and multiple processes must be able to access info concurrently.</br>
+Two views of file systems:
+- User view \- convenient logical origanization of information.
+- OS view \- managing physical storage media, enforcing access restrictions.
+
+### 8.1.1 File Table (handling operations on files)
+When file is first used actively, store its attribute info in a system-wide open-file table. The index (*fd*) into this table is used on subsequent operations, hence no searching is required.</br>
+<img src="./images/file_table.png" width="650"></br>
+
+### 8.1.2 File Sharing
+Have 2 levels of internal tables:
+- A per-process table of all files that each process has open (also holds the current file positions)
+- Each entry in the per-process table points to an entry in the system-wide open-file table.</br>
+<img src="./images/file_sharing.png" width="650">
+
+### 8.1.3 File Access Methods
+Modern systems typically only support simple access:
+- Sequential access \- read bytes one at a time, in order
+- Direct access \- random access given block/byte number
+
+### 8.1.4 File links
+* Hard link \- second directory indentical to the first one
+* Symbolic link \- Directory entry refers to file that holds "true" path to the linked file.
+
+### 8.2.1 Directories
+Directories serves multiple purposes:
+* For users, they provide a structured way to organize files.
+* For the file system, they provide a convenient naming interface that allows the implementation to separate logical file organization from physical file placement on the disk.
+* Stores information about files
+
+### 8.2.2 Directory Structure
+* A directory is a list of entries \- names and associated metadata (information that describes properties of the data e.g. size, protection, location, etc.)
+* List is usually unordered.
+* Directories typically stored in files. Only need to manage one kind of secondary unit.</br>
+
+### 8.2.3 Issues with acyclic graphs
+* With links, a file may have multiple absolute path names.
+* Sharing can occur with duplication of information, but maintaining consistensy is a problem, e.g. updating permissions in directory entry with hardlink.
+
+### 8.3.1 File system Implementation
+* File systems define a block size (e.g. 1KB for A4).
+* A Super Block determines location of root directory.
+* A free map determines which blocks are free. Usually a bitmap, one bit block on the disk. Also stored on disk, cached in memory for performance.
+* Remaining disk blocks used to store files.
+
+### 8.3.2 Disk Layout Strategies
+**Contiguous Allocation**</br>
+* Like memory, fast, simplifies directory access.
+* Inflexibal, causes fragmentation, needs compaction.
+<img src="./images/contiguous_alloc.png" width="600">
+---
+**Linked Allocatin**
+* Each block points to the next, directory points to the first.
+* Good for sequential access, bad for all others.
+<img src="./images/linked_alloc.png" width="600">
+---
+**Indexed structure** (*indirection, hierarchy*)
+* An "index block" contains pointers to many other blocks.
+* Handles random better, still good for sequential.
+* May need muti-level index blocks.
+
+
+UNIX inodes implement an indexed structure for files. All file metadata is stored in inode. (UNIX dir entries map file names to inode)</br>
+Each inode contains 15 block pointers (i_block):
+- First 12 are direct block pointers (disk addresses of the first 12 data blocks).
+- Then *single indirect* block pointer.
+- Then *double indirect* block pointer.
+- Then *triple indirect* block pointer.
+<img src="./images/indexed_alloc" width="600">
