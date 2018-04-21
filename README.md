@@ -345,12 +345,12 @@ Directories serves multiple purposes:
 **Contiguous Allocation**</br>
 * Like memory, fast, simplifies directory access.
 * Inflexibal, causes fragmentation, needs compaction.
-<img src="./images/contiguous_alloc.png" width="600">
+<img src="./images/contiguous_alloc.png" width="600"></br>
 ---
 **Linked Allocatin**
 * Each block points to the next, directory points to the first.
 * Good for sequential access, bad for all others.
-<img src="./images/linked_alloc.png" width="600">
+<img src="./images/linked_alloc.png" width="600"></br>
 ---
 **Indexed structure** (*indirection, hierarchy*)
 * An "index block" contains pointers to many other blocks.
