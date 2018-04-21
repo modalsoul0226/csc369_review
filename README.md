@@ -4,6 +4,7 @@
 
 - [Week 6: Memory Management](#week-6-memory-management)
 - [Week 7: Paged Virtual Memory](#week-7-paged-virtual-memory)
+- [Week 8: Disk and File System](#week-8-file-systems)
 
 ## Week 6 Memory Management
 \- <strong>GOALs of VM</strong>:
