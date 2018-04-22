@@ -242,10 +242,12 @@ When a process is executing on the CPU, and it issues a read to an address. The 
 4. PTE specifies which physical frame holds the page.
 5. MMU combines physical frame & offset into a physical address.
 6. MMU reads from that physical address, returns value to CPU.</br>
+
 ---
 If TLB does not have a PTE mapping for this virtual address, known as a *minor page fault* as no I/O will be needed in the following solutions. There are two possibilities:
 1. MMU loads PTE from page table in memory. Hardware managed TLB, OS not involved in this step, and OS has already set up the page tables so that the hardware can access it directly.
 2. Trap to OS. In this case, software manages TLB. OS does lookup in page table, loads PTE into TLB and returns from exception, then retries memory access.
+
 ---
 If access is not permitted by PTE. PTE will indicate a protection fault, either operation is not permitted on page (r/w/x) or virtual page not allocated/not in physical memory.</br>
 TLB traps to the OS:
@@ -283,10 +285,12 @@ Bind a file to a virtual memory region:
 * PTEs map virtual addresses to physical frames holding file data.
 * Virtual address base + N corresponds to offset N in file.
 * Can read or write at various offsets in file, using memory operations.
+
 ---
 Initially, all pages mapped to file are invalid:
 * OS reads a page from file when invalid page is accessed.
 * OS write a page to file when evicted, or region unmapped.
+
 ---
 Advantages:
 - Uniform access for files and memory (just use pointers)
@@ -347,11 +351,13 @@ Directories serves multiple purposes:
 * Like memory, fast, simplifies directory access.
 * Inflexibal, causes fragmentation, needs compaction.
 <img src="./images/contiguous_alloc.png" width="600"></br>
+
 ---
 **Linked Allocation**
 * Each block points to the next, directory points to the first.
 * Good for sequential access, bad for all others.
 <img src="./images/linked_alloc.png" width="600"></br>
+
 ---
 **Indexed structure** (*indirection, hierarchy*)
 * An "index block" contains pointers to many other blocks.
@@ -366,3 +372,171 @@ Each inode contains 15 block pointers (i_block):
 - Then *double indirect* block pointer.
 - Then *triple indirect* block pointer.
 <img src="./images/indexed_alloc" width="600">
+
+### 8.4 Very Simple File System (VSFS)
+Overall Organization:
+- block size: 4KB
+- Number of blocks: 64
+- Total size: 256KB
+</br>
+    <img src="./images/vsfs.png" width="600">
+</br>
+
+---
+*Super block*: when mounting a file system, the OS first reads the superblock, identifies its type and other parameters, then attaches the volume to the file system tree with proper settings.
+
+### 8.5 Other Approaches
+*Extent-based*</br>
+An **extent** == a disk pointer plus a length (in number of blocks). So, instead of requiring a pointer to every block of a file, we just need a pointer to every several blocks.
+- Disadvantage: Less flexible than the pointer-based approach.
+- Advantage: Uses smaller amount of metadata per file, and file allocation is more compact.
+- adopted by ext4, NTFS.
+
+---
+*Linked-based*</br>
+Instead of pointers to all blocks, the inode just has one pointer to the first data block of the file, then the first block points to the second block, etc.
+- Disadvantage: works poorly if we want to access the last block of a big file
+- Advantage: uses an in-memory *File Allocation Table*, indexed by address of data block, so faster in finding a block.
+- adopted by FAT
+
+### 8.6.1 Inode
+- Data structure representing an FS object.
+- Attributes, disk block locations.
+- No file name, just metadata.
+
+### 8.6.2 Directories
+- List of (name, inode) mappings.
+- Each directory entry: itself(.), parent dir(..), a file, another directory, link.
+
+### 8.6.3 Hard links
+- Multiple file names (and directory entries) mapped to the same inode.
+- Reference count - only remove file when it reaches 0
+
+### 8.6.4 Symbolic links
+- "Pointer" to a given file
+- contains the path as its contents
+
+### 8.6.5 The content of a data block
+- *Regular file*: data of the file
+- *Directory*: list of directory entries
+- *Symbolic Link*: path of the file that it links to 
+
+### 8.6.6 Inodes and Path search
+Unix inodes are **not** directories. They describe where on the disk the blocks for a file are placed.
+On the contrary, directory entries map file names to inodes.
+1. To open "/somefile", use super block to read the inode for root directory.
+2. Read data block for root dir, look for an entry with name "somefile".
+3. This entry will identify the inode for "somefile".
+4. Read the inode for "somefile" into memory.
+5. The inode says where first data block is on disk.
+6. Read that block into memory to access the data in the file. 
+
+### 8.7.1 File Buffer Cache
+Cache file blocks in memory to capture locality.
+- Cache is system wide, used and shared by all processes
+- Reading from the cache makes a disk perform like memory.
+- Significant reuse: spatial and temporal locality.</br>
+Items cached:
+- Inodes
+- Directory entries
+- disk blocks for frequently used files
+
+### 8.7.2 Caching and Buffering
+- Static partitioning: at boot time, allocate a fixed-size cache in memory (10 % of total memory).
+- Dynamic partitioning: integrate virtual memory pages and file system pages into a unified page cache, so pages of memory can be flexibly allocated for either virtual memory or file system, used by modern systems.
+
+### 8.7.3 Caching writes
+Buffering a batch of disk writes is helpful because:
+- Combine multiple writes into one write.
+- Can improve performance by scheduling the buffered writes (lazy updates), e.g. can schedule buffered writes in such a way that they happen sequentially on disk.
+- Can avoid some unnecessary writes.
+
+### 8.7.4 Tradeoff using caching
+Caching and buffering improves the speed of file system reads and writes. However, it sacrifies the durability of data, e.g. if crash occurs, buffered writes not written to disk are lost, however, if we sync to disk more frequently will incur a lower speed.
+
+### 8.7.5 Read Ahead
+Very helpful for sequentially accessed files, unless blocks for the file are scattered across the disk.
+- FS predicts that the process will request next block.
+- It goes ahead and requests it from the disk.
+- This can happen while the process is computing on previous block i.e. overlapping I/O with execution.
+- When the process requests block, it will be in cache.
+- Compliments the on-disk cache, which also is doing read ahead.
+
+### 8.8.1 Disk Components
+<img src="./images/disk_components.png" width="500">
+
+### 8.8.2 Disk Performance
+* Seek - moving the disk arm to the correct cylinder
+* Rotation - waiting for the sector to rotate under the head
+* Transfer - transferring data from surface into disk controller electronics, sending it back to the host.
+
+
+<img src="./images/disk_steps.png" width="600">
+
+### 8.8.3 Hardware optimizations
+**Track Skew**
+</br>
+    <img src="./images/track_skew.png" width="600">
+</br>
+
+---
+**Zones**
+</br>
+    <img src="./images/zones.png" width="600">
+</br>
+
+---
+**Cache** (Track Buffer)
+* A small memory chip, part of the hard drive, usually 8-16MB.
+* Different from cache that OS has. Unlike the OS cache, it is aware of the disk geometry. When reading a sector, may cache the whole track to speed up future reads on the same track.
+
+### 8.8.4 Enhancing achieved disk performance
+- *Closeness*: reduce seek times by putting related things close to each other
+- *Amortization*: amortize each positioning delay by grabbing lots of useful data
+
+### 8.9.1 Problems for the original UNIX fs
+- Problem #1: On a new FS, blocks are allocated sequentially, close to each other. As the FS gets older, files are being deleted and create random gaps. In aging FS, data blocks end up allocated **far from each other**. Therefore, data blocks for new files end up **scattered across the disk**. Fragmentation of an aging FS requires **more seeking**.
+- Problem #2: Inodes allocated far from blocks as all inodes are at the beginning of disk, far from data. Traversing file name paths, manipulating files, directories requires **going back and forth from inodes to data blocks**. Hence, incur a lot of seekings.
+
+### 8.9.2 Cylinder Groups for FFS
+FFS addressed placement problems using the notion of a *cylinder group* (aka allocation groups).
+* Disk partitioned into groups of cylinders.
+* Data blocks in same file allocated in same cylinder group.
+* Files in same directory allocated in same cylinder group.
+* Inodes for files are allocated in same cylinder group as file data blocks.
+
+<img src="./images/cylinder_group.png" width="600"></br>
+Allocation in cylinder groups provides *closeness*, hence reduces number of long seeks.
+
+### 8.10 Disk Scheduling Algorithms
+Goal: minimize seeks
+
+---
+**FCFS** (do nothing)
+- Reasonable when load is low.
+- Long waiting time for long request queues.
+
+<img src="./images/fcfs.png" width="600">
+
+---
+**SSTF** (shortest seek time first)
+- Minimize arm movement (seek time), maximize request rate
+- Favors middle blocks
+
+<img src="./images/sstf.png" width="600">
+
+---
+**SCAN**
+- Service requests in one direction util done, then reverse.
+
+<img src="./images/scan.png" width="600">
+
+---
+**C-SCAN**
+- Like SCAN, but only go in one direction.
+---
+
+**LOOK / C-LOOK**
+- Like SCAN/C-SCAN but only go as far as last request in each direction.
+
+<img src="./images/look.png" width="600">
