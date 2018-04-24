@@ -508,6 +508,8 @@ FFS addressed placement problems using the notion of a *cylinder group* (aka all
 <img src="./images/cylinder_group.png" width="600"></br>
 Allocation in cylinder groups provides *closeness*, hence reduces number of long seeks.
 
+Structure of Ext4 file system:</br><img src="./images/ext3.png" width="300">
+
 ### 8.10 Disk Scheduling Algorithms
 Goal: minimize seeks
 
@@ -540,3 +542,88 @@ Goal: minimize seeks
 - Like SCAN/C-SCAN but only go as far as last request in each direction.
 
 <img src="./images/look.png" width="600">
+
+## Week 11 File Systems Integrity
+
+Metadata updates must be synchronous operations. However, a file system operation will affect multiple metadata blocks:
+- Write newly allocated inode to disk before its name is entered in a directory
+- remove a directory name before the inode is deallocated
+- deallocate an inode (mark as free in bitmap) before that file's data blocks are placed into the cylinder group free list
+
+If the OS crashes in between any of these synchronous operations, then the file system is in an inconsistent state.</br>
+
+---
+### 11.1 FSCK
+Solution: **fsck** - post-crash recovery process to scan file system structure and restore consistency. 
+1. *Superblock*: sanity checks. Use another superblock copy if suspected corruption.
+2. *Free blocks*: scan inodes (including all indirect blocks), build bitmap. If inodes / data bitmaps inconsistency is detected, resolve by trusting indoes. Ensure inodes in use are marked in inode bitmaps.
+3. *Inode state*: check inode fields for possible corruption. If cannot fix, remove inode and update inode bitmap.
+4. *Inode links*: verify links count for each inode. Traverse directory tree, compute expected links count, fix if needed. If inode discovered, but no dire refers to it, move to "lost+found".
+5. *Duplicate*: check if two different inodes refer to same block. Clear one if obviously bad, or, give each inode its own copy of block.
+6. *Bad blocks*: bad pointers (outside of valid range). Just remove the pointer from the inode or indirect block.
+7. *Directory checks*: integrity of directory structure, e.g. make sure that "." and ".." are the first entries, each inode in a directory entry is allocated, no directory is linked more than once.
+
+Log updates to enable roll-back or roll-forward.</br>
+However, fsck cannot fix all problems:
+- When data block only contains garbage - cannot know that's the case
+- Only cares that FS metadata is consistent.
+- Too slow. Even for small inconsistency, must scan the whole disk. Scanning all the integrities could take hours.
+
+---
+### 11.2 Journaling
+Another solution: **Journaling** (write-ahead logging)</br>
+Basice idea: when doing an update, before overwriting structures, first write down a little note (elsewhere on disk) saying what you plan to do.
+
+If a crash takes place during the actual write, just go back to journal and retry the actual writes. Don't need to scan the entire disk, can also recover data.
+
+if a crash happens before journal write finishes, then it doesn't matter since the actual write has NOT happened at all, so nothing is inconsistent.
+
+Structure of the **Journal entry**:</br>
+- Starts with a "transaction begin" (TxBegin) block, containing a transaction ID.
+- Followed by blocks with the content to be written:</br>
+&nbsp;&nbsp; - Physical logging: log exact physical content</br>
+&nbsp;&nbsp; - Logical logging: log more compact logical representation
+- Ends with a "transaction end" (TxEnd) block, containing the corresponding TID.
+
+<img src="./images/journal_entry.png" width="600">
+
+Steps to write a journal entry:</br>
+1. Buffer updates in memory for some time.
+2. Write all except TxEnd to journal. (**Journal Write Step**)
+3. Then write TxEnd. (**Journal Commit Step**)
+4. Finally, journal entry is now safe, write the actual data and metadata to their right locations on FS. (**Checkpoint Step**)
+5. Mark transaction as free in journal. (**Free Step**)
+
+Recovery Summary:
+- If crash happens during the journal write step (before journal commit step), just skip the pending update.
+- If crash happens during the checkpoint step, after reboot, scan the journal and look for committed transactions. Replay these transactions. After replay, FS is guaranteed to be consistent. Called *redo logging*.
+
+---
+### 11.3 Metadata Journaling
+Although recovery is much faster with journaling (replay only a few transactions instead of checking the whole disk). However, normal operations are slower, as every update must write to the journal first, then do the update, writing time is at least doubled. Journal writing may break sequential writing as jump back-and-forth between writes to journal and writes to main region. 
+
+Metadata journaling is similar, except we only writes FS metadata (no actual data)to the journal:</br>
+<img src="./images/metadata_journaling.png" width="550">
+
+Steps to write a journal entry:
+1. **Write data** to final location, wait for completion.
+2. **Journal metadata write**. Write the begin block and metadata to the log, wait for writes to complete.
+3. **Journal commit**. Write the transaction commit block (containing TxE) to the log.
+4. **Checkpoint metadata**. Write the contents of the metadata update to their final locations within the file system.
+5. Free.
+
+Recovery Summary:
+- If write data fails, as if nothing happened.
+- If write metadata fails, same.
+
+---
+**Summary: Journaling**</br>
+Journaling ensures file system consistency. Complexity is in the size of the journal, not the size of disk.
+
+Metadata journaling is the most commonly used. It reduces the amount of traffic to the journal, and provides reasonable consistency guarantees at the same time.
+
+---
+### 11.4 Log-structured File System
+The motivation for creating LFS was based on:
+* *System memories are growing*: as memory gets bigger, more data can be cached in memory. As more data is cached, disk traffic increasingly consists of writes, since reads are serviced by the cache.
+* *Existing file systems perform poorly on many common workloads*: FFS would perform a large number of writes to create a new file of size one block: one for a new inode, one to update the inode bitmap, one to the directory data block, one to the current directory inode... Although FFS places all of these blocks within the same block group, FFS incurs many short seeks and subsequent rotational delays.
