@@ -508,7 +508,7 @@ FFS addressed placement problems using the notion of a *cylinder group* (aka all
 <img src="./images/cylinder_group.png" width="600"></br>
 Allocation in cylinder groups provides *closeness*, hence reduces number of long seeks.
 
-Structure of Ext4 file system:</br><img src="./images/ext3.png" width="300">
+Structure of ext3 file system:</br><img src="./images/ext3.png" width="350">
 
 ### 8.10 Disk Scheduling Algorithms
 Goal: minimize seeks
@@ -624,6 +624,26 @@ Metadata journaling is the most commonly used. It reduces the amount of traffic 
 
 ---
 ### 11.4 Log-structured File System
-The motivation for creating LFS was based on:
+**Motivations**:
 * *System memories are growing*: as memory gets bigger, more data can be cached in memory. As more data is cached, disk traffic increasingly consists of writes, since reads are serviced by the cache.
 * *Existing file systems perform poorly on many common workloads*: FFS would perform a large number of writes to create a new file of size one block: one for a new inode, one to update the inode bitmap, one to the directory data block, one to the current directory inode... Although FFS places all of these blocks within the same block group, FFS incurs many short seeks and subsequent rotational delays.
+
+---
+**The basic idea**:</br>
+Buffer all writes (metadata + data) using an in-memory segment. Once the segment is full (write buffering), write the segment to a log. LFS never overwrites existing data, but rather *always* writes segments to free locations.
+
+---
+**Finding Inodes**</br>
+*Difficulties in locating inodes*: inodes all are scattered throughout the disk. Also, since we never overwrite in place, and thus the latest version of an inode keeps moving.
+
+Solution through indirection -- **The Inode Map**: </br>
+LFS solves these problems using an **inode map** which translates inode numbers to (the most recent) on-disk inode locations.
+
+Trick 1: LFS caches the entire inode map in memory. Thus, determining the on-disk location for an inode doesn't require a disk seek.
+
+Trick 2: LFS breaks the inode map into small, logical pieces. When LFS must write an updated inode to the log, LFS also writes the piece of the inode map that is associated with the inode. Periodically, LFS updates a fixed location called the **checkpoint region**:
+- The checkpoint region contains pointers to the current versions of the inode pieces (pieces of inode maps).
+- During a clean shutdown, LFS flushes the entire in-memory inode map to the checkpoint region.
+- After a clean reboot, LFS reads the checkpoint region to create the in-memory indoe map.
+
+<img src="./images/lfs_structure.png" width="350">
