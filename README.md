@@ -612,9 +612,8 @@ Steps to write a journal entry:
 4. **Checkpoint metadata**. Write the contents of the metadata update to their final locations within the file system.
 5. Free.
 
-Recovery Summary:
-- If write data fails, as if nothing happened.
-- If write metadata fails, same.
+Recovery Summary: </br>
+If a crash happens before journal commit, the journal entry simply won't appear in the final log. If a crash happens between the commit step and the free step, replay the journal entry (i.e. try to checkpoint metadata again). 
 
 ---
 **Summary: Journaling**</br>
@@ -646,4 +645,53 @@ Trick 2: LFS breaks the inode map into small, logical pieces. When LFS must writ
 - During a clean shutdown, LFS flushes the entire in-memory inode map to the checkpoint region.
 - After a clean reboot, LFS reads the checkpoint region to create the in-memory indoe map.
 
-<img src="./images/lfs_structure.png" width="350">
+<img src="./images/lfs_structure.png" width="320" align="left">
+<img src="./images/lfs_dir.png" width="320" align="center">
+
+
+---
+**Reading a file from LFS**
+1. LFS locates the checkpoint region with fixed on-disk address, reads in the entire inode map, and caches it in memory.
+2. When given an inode number of a file, LFS looks up in inode map which translates inode number to disk address, and then reads in the most recent version of the inode.
+3. Finally, LFS uses direct pointers or indirect pointers to read the data block like a typical UNIX file system.
+
+In the common cases, LFS performs the same number of IOs as a typical file system when reading a file from disk. The entire inode map is cached and thus the **extra work** LFS does during a read is to look up the inode's address in the inode map.
+
+---
+**Crash recovery**
+
+During normal operation, LFS buffers writes in a segment, and then writes the segment to disk (CR points to a head and tail segment, and each segment points to the next segment). LFS also periodically updates the checkpoint region.
+
+If crash happens during the write to the CR. Since LFS keeps two CRs, one at either end of the disk, and writes to them alternately. When updating the CR, it first writes out a header with timestamp, the body of CR, and finally the end with timestamp. If the system crashes during a CR update, LFS can detect this by seeing an inconsistent pair of timestamps, and choose to use the most recent CR that has consistent timestamps. 
+
+If crash happens during the write of a segment. Upon reboot, LFS simply recover by reading in the checkpoint region and rebuild the entire inode map.
+
+In addition, LFS uses a technique known as *roll forward*. Basically, it uses the last valid CR to find the tail segment, and then use that to read through the next segments and see if there are any valid updates within it. 
+
+---
+**Garbage collection**
+
+Since LFS repeatedly writes latest version of a file to new locations on disk. Older versions of files (garbage) are scattered throughout the disk. Must periodically find these obsolete versions of file data and clean up in order to provide free blocks for subsequent writes. Cleaning is done on a segment-by-segment basis. Since the segments are large chunks, it avoids the situation of having small "holes" of free space.
+
+---
+**Advantage**:
+- Very efficient writes.
+
+**Disadvantage**:
+- Less efficient reads.
+- Garbage collection is tricky.
+
+---
+### 11.5 RAID
+*Reliability strategies*:
+- Data duplicated - mirror images, redundant full copy. If one disk fails, we have the mirror.
+- Data spread out accross multiple disks with redundancy, can recover from a disk failure, by reconstructing the data.
+
+---
+*Concepts*:
+- Redundancy/Mirroring: keep multiple copies of the same block on different drives, just in case a drive fails.
+- Parity information: XOR each bit from 2 drives, store checksum on 3rd drive.
+
+---
+Some standard RAID levels:
+</br><img src="./images/raid_levels.png" width="550">
