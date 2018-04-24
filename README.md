@@ -696,3 +696,26 @@ Since LFS repeatedly writes latest version of a file to new locations on disk. O
 ---
 Some standard RAID levels:
 </br><img src="./images/raid_levels.png" width="550">
+
+---
+## Week 12 Deadlock
+
+---
+### 12.1 Non-deadlock bugs
+
+\- **Atomicity violation bugs**: when a code region is intended to be atomic, but the atomicity is not enforced during execution, e.g. two threads modify a counter concurrently, solve by locking around the critical section (where shared resource is modified).
+
+\- **Order violation bugs**: when the desired order between memory accesses is flipped (i.e. when a certain order is assumed, but not specifically enforced).
+
+---
+### 12.2 Deadlocks
+The **mutual** blocking of a set of processes or threads. Each process in the set is blocked, waiting for an event which can only be caused by another process in the set.
+
+Two types of deadlocks:
+* Communication deadlocks: communicate with each other
+* Resource deadlocks: compete for system resources.
+
+Root causes of **resource deadlocks**:
+- Resources are *finite*.
+- Processes *wait* if a resource they need is unavailable.
+- Resources may be *held* by other waiting processes.
