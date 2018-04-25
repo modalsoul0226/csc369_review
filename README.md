@@ -6,6 +6,7 @@
 - [Week 7 + 9 1/2: Paged Virtual Memory](#week-7-paged-virtual-memory)
 - [Week 10 + 9 1/2: Disk and File System](#week-10-file-systems)
 - [Week 11: File Systems Integrity](#week-11-file-systems-integrity)
+- [Week 12: Deadlock](#week-12-deadlock)
 
 ## Week 6 Memory Management
 \- <strong>GOALs of VM</strong>:
@@ -700,7 +701,6 @@ Some standard RAID levels:
 ---
 ## Week 12 Deadlock
 
----
 ### 12.1 Non-deadlock bugs
 
 \- **Atomicity violation bugs**: when a code region is intended to be atomic, but the atomicity is not enforced during execution, e.g. two threads modify a counter concurrently, solve by locking around the critical section (where shared resource is modified).
@@ -708,7 +708,7 @@ Some standard RAID levels:
 \- **Order violation bugs**: when the desired order between memory accesses is flipped (i.e. when a certain order is assumed, but not specifically enforced).
 
 ---
-### 12.2 Deadlocks
+### 12.2 Definition of deadlock
 The **mutual** blocking of a set of processes or threads. Each process in the set is blocked, waiting for an event which can only be caused by another process in the set.
 
 Two types of deadlocks:
@@ -719,3 +719,108 @@ Root causes of **resource deadlocks**:
 - Resources are *finite*.
 - Processes *wait* if a resource they need is unavailable.
 - Resources may be *held* by other waiting processes.
+
+---
+### 12.3 Conditions for deadlock
+1. **Mutual Exclusion**: only one process may use a resource at a time.
+2. **Hold and wait**: a process may hold allocated resources while awaiting assignment of others.
+3. **No preemption**: no resource can be forcibly removed from a process holding it.
+> These are **necessary** conditions.
+4. **Circular wait**: a closed chain of processes exists, such that each process holds at least one resource needed by the next process in the chain.
+> Together, these four conditions are **necessary and sufficient** for deadlock.
+
+*Idea*: break one -> deadlock cannot occur
+
+---
+### 12.4 Deadlock prevention
+
+### 12.4.1 Preventing Mutual Exclusion
+Avoid the need for mutual exclusion. In general, we know this is difficult, because the code we wish to run does indeed have critical sections. The idea is that one could design various data structures without locks at all (*lock-free*). Using powerful hardware instructions, we can build data structures in a manner that does not require explicit locking.
+</br><img src="./images/atomic_add.png" width="600">
+
+</br><img src="./images/ll_insert.png" width="550">
+
+### 12.4.2 Preventing Hold and wait
+**Break "hold and wait"** - processes must request all resources at once, and will block utill the entire request can be granted simultaneously, i.e. avoid the hold-and-wait by acquiring all locks at once.
+
+Note that the solution is problematic for a number of reasons.
+- When calling a routine, this approach requires us to know exactly which locks must be held and to acquire them ahead of time.
+- This technique also is likely to decrease concurrency as all locks must be acquired early on (at once) instead of when they are truly needed.
+
+### 12.4.3 No preemption
+Not feasible, or highly complex to safely achieve.
+
+### 12.4.4 Preventing circular wait
+**Break "circular wait"** - assigns a linear ordering to resource types and require
+that a process holding a resource of one type, R, can only request resources that follow R in the ordering. 
+
+For example, if there are only two locks in the system (L1 and L2), you can prevent deadlock by always acquiring L1 before L2. Such strict ordering ensures that no cyclical wait arises.
+
+---
+### 12.5 Deadlock Avoidance
+**Avoidance** allows the first three conditions, but ensures that circular wait cannot possibly occur.
+
+\- Two Avoidance Strategies
+* Do not start a process if its maximum resource requirements, together with the maximum needs of all processes already running, exceed the total system resources.
+* Do not grant an individual resource request, if any future resource allocation "path" leads to deadlock.
+
+\- Restrictions on Avoidance
+1. Maximum *resource requirements* for each process *must be known in advance*.
+2. Processes *must be independent*. If order of execution is constrained by synchronization requirements, system is not free to choose a safe sequence.
+3. There must be a *fixed number of resources to allocate*.
+
+---
+### 12.6 Banker's algorithm
+Each thread 
+- States its maximum resource requirements. 
+- Acquires and releases resources incrementally.
+
+Runtime system delays granting some requests to ensure the system never deadlocks.
+
+System can be in one of three states:
+* **Safe**: for any possible sequence of resource requests, there is at least one safe sequence that eventually succeeds in granting all pending and future requests.
+* **Unsafe**: if all threads request their maximum resources at this point, the system would deadlock (i.e. there is no safe sequence).
+* **Deadlocked**
+
+---
+*Basic idea*:
+1. Can the request be granted? If not, request is impossible at this point -> block the process until we can grant the request.
+2. Assume that the request is granted, update state assuming request is granted.
+3. Check if new state is safe.
+
+e.g.</br>
+<img src="./images/bankers_algo.png" width="600">
+
+---
+### 12.7 Deadlock Detection
+Prevention and avoidance are awkward and costly, need to be cautious leads to low utilization.</br>
+Instead, allow deadlocks to occur, but detect when this happens and find a way to break it. (check for circular wait condition periodically)</br>
+When should the system check for deadlocks ?
+1. on every allocation request
+2. fixed periods
+3. when system utilization starts to drop below a threshold
+
+---
+**Resource allocation graph**</br>
+Finding circular waits is equivalent to finding a cycle in the *resource allocation graph*.
+* Nodes are processes (circle) and resources (square).
+* Arcs from a resource to a process represent **allocations**.
+* Arcs from a process to a resource represent **ungranted requests**.
+
+> Any algorithm for finding a cycle in a directed graph will do for our goal. (*Note*: with multiple instances of a type of resource, cycles may exist without deadlock)
+
+<img src="./images/resource_alloc_graph.png" width="600">
+
+---
+### 12.8 Deadlock recovery
+Basic idea to break the cycle:
+* Drastic - kill all deadlocked processes
+* Painful - back up and restart deadlocked processes (hopefully, non-determinism will keep deadlock from repeating)
+* Better - selectively kill deadlocked processes util cycle is broken, re-run detection algorithm after each kill.
+* Tricky - selectively preempt resources until cycle is broken, processes must be rolled back.
+
+---
+### 12.9 Deadlock and Starvation
+A set of threads is in a **deadlocked** state when every process in the set is waiting for an event that can be caused only by another process in the set.
+
+A thread is suffering **starvation** if it is waiting indefinitely because other threads are in some way preferred.
