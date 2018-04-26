@@ -151,4 +151,4 @@ Signaling a thread only wakes them up, it is thus a hint that the state of the w
 - choice of quantum is critical: as *q* approaches infinity, RR becomes FCFS, as *q* approaches 0, RR becomes processor sharing. We want *q* to be **large** with respect to **context switch time**.
 
 \- Multi-Level Feedback Queue</br>
-<img src="./images/mlfq.png" width="400">
+<img src="./images/mlfq.png" width="600">

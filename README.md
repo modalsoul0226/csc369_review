@@ -10,8 +10,8 @@
 
 ## Week 6 Memory Management
 \- <strong>GOALs of VM</strong>:
-* `6.1 Efficiency`: since only have a limited amount of physical memory, must use efficiently.</br>
-* `6.2 Transparency`: since must provide the illusion of “infinite” memory to each process.</br>
+* `6.1 Efficiency`: only have a limited amount of physical memory, must use efficiently.</br>
+* `6.2 Transparency`: must provide the illusion of “infinite” memory to each process.</br>
 * `6.3 Protection and sharing`: since physical memory is accessed by multiple processes, and must ensure data privacy.
 <br></br>
 
