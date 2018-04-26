@@ -79,8 +79,8 @@ When two concurrent threads manipulated a **shared resource** without any synchr
 - No guarantee that 2 threads do not get same #. In case of a tie, thread with the lowest id is served first. Thread ids are unique and totally ordered.
 
 \- H/W - Test-And-Set</br>
-<img src="./images/spin_lock_tas.png" width="400">
-<img src="./images/test_and_set.png" width="400">
+<img src="./images/spin_lock_tas.png" width="600"></br>
+<img src="./images/test_and_set.png" width="600">
 
 \- H/W - Compare-And-Swap</br>
 <img src="./images/compare_and_swap.png" width="400">
