@@ -71,7 +71,7 @@ When two concurrent threads manipulated a **shared resource** without any synchr
 
 \- Synchronization primitives</br>
 \- S/W - Peterson's Algorithm</br>
-<img src="./images/petersons_algo.png" width="400">
+<img src="./images/petersons_algo.png" width="600">
 
 \- S/W - Bakery Algorithm</br>
 - Upon entering, each thread gets a #.
@@ -83,7 +83,8 @@ When two concurrent threads manipulated a **shared resource** without any synchr
 <img src="./images/test_and_set.png" width="600">
 
 \- H/W - Compare-And-Swap</br>
-<img src="./images/compare_and_swap.png" width="400">
+<img src="./images/spin_lock_cas.png" width="600"></br>
+<img src="./images/compare_and_swap.png" width="600">
 
 \- Lock: a binary semaphore.
 
