@@ -23,6 +23,7 @@
 2. **Load the executable** of the program, initilize start state for process, and change state to **ready**.
 3. Dispatch the process, and change state from ready to **running** using **context switch** (saving the state of old process, load the save state for the new process). *Note: cs happens when: some process calls yield(), process makes other syscall and is blocked, time interrupt*.</br>
 <img src="./images/context_switch.png" width="400">
+
 4. On **exit()**, a process voluntarily releases all resources. OS **stops running the process to free everything**, **requires context switch** to another process, **parent may be waiting** or asking for the return value.
 5. The process is a **zombie** until its parent cleans it up.
 
@@ -33,8 +34,8 @@
 PCB includes: **process state** (ready, running, blocked), **PC** (address of the next instruction), CPU **regs** (must be saved at an interrupt); CPU scheduling info: **process priority**; **page table**; resource use info; list of **open files**.</br>
 <img src="./images/address_space.png" width="300">
 
-\- How do threads relate to virtual address space ?
-<img src="./images/threaded_address_space.png" width="350">
+\- How do threads relate to virtual address space ?</br>
+<img src="./images/threaded_address_space.png" width="400">
 
 ---
 ### 3. System Calls
@@ -78,10 +79,11 @@ When two concurrent threads manipulated a **shared resource** without any synchr
 - No guarantee that 2 threads do not get same #. In case of a tie, thread with the lowest id is served first. Thread ids are unique and totally ordered.
 
 \- H/W - Test-And-Set</br>
-<img src="./image/test_and_set.png" width="400">
+<img src="./images/spin_lock_tas.png" width="400">
+<img src="./images/test_and_set.png" width="400">
 
 \- H/W - Compare-And-Swap</br>
-<img src="./image/compare_and_swap.png" width="400">
+<img src="./images/compare_and_swap.png" width="400">
 
 \- Lock: a binary semaphore.
 
