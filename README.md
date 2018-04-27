@@ -168,7 +168,7 @@ TLBs are implemented in hardware:
 
 ### 7.5 Demand paging
 Pages can be moved between memory and disk, this is called *demand paging*.
-1. Initially, pagees are allocated to memory.
+1. Initially, pages are allocated to memory.
 2. When memory fills up, allocating a page in memory requires some other page to be evicted from memory.</br>
 &nbsp;&nbsp; - When a process accesses the page, the invalid PTE will cause a trap(*page fault*).</br>
 &nbsp;&nbsp; - The trap will run the OS page fault handler.</br>
