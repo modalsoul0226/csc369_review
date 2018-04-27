@@ -559,6 +559,9 @@ Buffer all writes (metadata + data) using an in-memory segment. Once the segment
 - Less efficient reads since we need to look up the inode's address in the inode map.
 - Garbage collection is tricky.
 
+<img src="./images/lfs_structure.png" width="320" align="left"></br>
+<img src="./images/lfs_dir.png" width="320" align="center"></br>
+
 \- Can we handle complete disk crashes ? What's the idea behind RAID ? Levels of RAID ?
 - Data duplicated - mirror images, redundant full copy. If one disk fails, we have the mirror.
 - Data spread out accross multiple disks with redundancy, can recover from a disk failure, by reconstructing the data.
